@@ -1,14 +1,13 @@
 package org.usfirst.frc.team5420.eighteen.robot;
 
-import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.SpeedController;
+import edu.wpi.first.wpilibj.drive.MecanumDrive;
 
 public class MecDrive {
-	private boolean isSetup = false;
 	public double deadband = 0;
 	public boolean deadband_enabled = false;
 	private SpeedController leftFront, rightFront, leftRear, rightRear;
-	private RobotDrive DriveControl;
+	private MecanumDrive DriveControl;
 
 	/*
 	 * Mecanum Drive Init
@@ -24,13 +23,29 @@ public class MecDrive {
 		this.leftRear = inLR;
 		this.rightRear = inRR;
 		
-		DriveControl = new RobotDrive(inLF, inRF, inLR, inRR); // Start the WPI Motor Control
-		this.isSetup = true;
+		DriveControl = new MecanumDrive(inLF, inLR, inRF, inRR); // Start the WPI Motor Control
 	}
 	
+	/*
+	 * Mecanum Drive Init with Deadband Enabled
+	 * 
+	 * @param SpeedController Left Front Controller
+	 * @param SpeedController Right Front Controller
+	 * @param SpeedController Left Rear Controller
+	 * @param SpeedController Right Rear Controller
+	 * @param double		  Deadband Value
+	 */
 	public MecDrive( SpeedController inLF, SpeedController inRF, SpeedController inLR, SpeedController inRR, double deadband ){
 		this(inLF, inRF, inLR, inRR);
+		this.deadband = deadband;
 		this.deadband_enabled = true;
+	}
+	
+	public void stop() {
+		this.leftFront.set(0);
+		this.rightFront.set(0);
+		this.leftRear.set(0);
+		this.rightRear.set(0);
 	}
 	
 	/**
@@ -51,14 +66,17 @@ public class MecDrive {
 	 * @param double Left/Right
 	 */
 	public void drive( double Power, double Turn, double Crab ){
-		//myDrive.mecanumDrive_Cartesian(0, 0, 0, 0);
-		//                               ^  ^  ^
-		//                               |  |  |
-		//              Left / Right    /   |  |
-		//                       Rotation  /   |
-		//                   Forward Reverse  /
+		//myDrive.driveCartesian(0, 0, 0, 0);
+		//                        ^  ^  ^
+		//                        |  |  |
+		//       Left / Right    /   |  |
+		//                Rotation  /   |
+		//            Forward Reverse  /
 		//
-		this.DriveControl.mecanumDrive_Cartesian(Crab, Turn, Power, 0);
+		Power = do_deadband(Power);
+		Turn = do_deadband(Turn);
+		Crab = do_deadband(Crab);
+		this.DriveControl.driveCartesian(Crab, Turn, Power, 0);
 	}
 	
 	/**
@@ -135,7 +153,7 @@ public class MecDrive {
 	 * Move the Robot Crab Right
 	 * @see crab
 	 */
-	private void crab_right(double Speed){
+	public void crab_right(double Speed){
 		crab(Speed, 'R');
 	}
 	
@@ -143,12 +161,12 @@ public class MecDrive {
 	 * Move the Robot Crab Left
 	 * @see crab
 	 */
-	private void crab_left(double Speed){
+	public void crab_left(double Speed){
 		crab(Speed, 'L');
 	}
 	
 	/**
-	 * If the Deadband is enabled in the Class.
+	 * If the Deadband is enabled in the Class then apply the deadband.
 	 * @param double Joystick in Value.
 	 * @return double The Joystick Value.
 	 */

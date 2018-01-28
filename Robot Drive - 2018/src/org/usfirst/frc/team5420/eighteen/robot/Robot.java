@@ -14,6 +14,7 @@ import org.usfirst.frc.team5420.eighteen.robot.subsystems.ExampleSubsystem;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.IterativeRobot;
@@ -21,26 +22,24 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.Solenoid;
-import edu.wpi.first.wpilibj.TalonSRX;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.VictorSP;
 
-
 public class Robot extends IterativeRobot {
 	public static final ExampleSubsystem exampleSubsystem = new ExampleSubsystem();
-	public static OI jinterface;
+	public DriverStation.Alliance color;
+	public double time;
+	public static OI jio;
 	Command autonomousCommand;
 	SendableChooser<Command> chooser = new SendableChooser<>();
 	
 	// Setup of the Devices in the Code.
 	Timer timer = new Timer();
-	protected ADXRS450_Gyro gyroSensor;
+	public ADXRS450_Gyro gyroSensor;
 	
 	public static Compressor compressor0;
 	// Claw Control
 	public static  Solenoid solenoid0, solenoid1;
-	// Clutch Control
-	public static  Solenoid solenoid3,  solenoid4;
 	
 	public static Encoder encoder0, encoder1;
 	public static DigitalInput UpperLimit, LowerLimit;
@@ -49,7 +48,8 @@ public class Robot extends IterativeRobot {
 	public static VictorSP LiftMotor;
 	
 	// Motor Setup
-	protected VictorSP motorFL, motorBL, motorBR, motorFR;
+	public VictorSP motorFL, motorBL, motorBR, motorFR;
+	public MecDrive MyDrive;
 	
 	/**
 	 * The RobotInit code to start the setup.
@@ -58,28 +58,40 @@ public class Robot extends IterativeRobot {
 	public void robotInit() {
 		SmartDashboard.putBoolean("AutoInitComplete", false);
 		SmartDashboard.putBoolean("TeleopInitComplete", false);
+		SmartDashboard.putBoolean("RobotInit", false);
 		
-		jinterface = new OI();
+		color = DriverStation.getInstance().getAlliance();
+		time = DriverStation.getInstance().getMatchTime();
 		
-		gyroSensor = new ADXRS450_Gyro( SPI.Port.kOnboardCS0 );
-		gyroSensor.calibrate();
+		jio = new OI();
 		
-		solenoid0 = new Solenoid(1); // Claw Close
-		solenoid1 = new Solenoid(2); // Claw Open
-		solenoid3 = new Solenoid(3); // Clutch Engage
-		solenoid4 = new Solenoid(4); // Clutch DisEngage
+		gyroSensor = new ADXRS450_Gyro( SPI.Port.kOnboardCS0 ); // SPI
+		gyroSensor.calibrate(); // SPI
 		
-		encoder0 = new Encoder(4,5, false, Encoder.EncodingType.k4X); // Left
-		encoder1 = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Right
 		compressor0 = new Compressor(0);
+		solenoid0 = new Solenoid(1); // Claw Close 
+		solenoid1 = new Solenoid(2); // Claw Open
 		
-		joystick0 = new Joystick(0); //Controller One
-		joystick1 = new Joystick(1); //Controller Two
+		encoder0 = new Encoder(4,5, false, Encoder.EncodingType.k4X); // Left DIO, DIO
+		encoder1 = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Right DIO, DIO
 		
-		UpperLimit = new DigitalInput(0);
-		LowerLimit = new DigitalInput(9);
+		joystick0 = new Joystick(0); //Controller One USB
+		joystick1 = new Joystick(1); //Controller Two USB
 		
-		LiftMotor= new VictorSP(2);
+		UpperLimit = new DigitalInput(0); // DIO
+		LowerLimit = new DigitalInput(9); // DIO
+		
+		LiftMotor= new VictorSP(2); // PWM
+		
+		motorFL= new VictorSP(3); // PWM
+		motorBL= new VictorSP(4); // PWM
+		
+		motorBR= new VictorSP(5); // PWM
+		motorFR= new VictorSP(6); // PWM
+		
+		MyDrive = new MecDrive(motorFL, motorBL, motorBR, motorFR, 0.1);
+		
+		SmartDashboard.putBoolean("RobotInit", true);
 	}
 
 	/**
@@ -89,7 +101,7 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void disabledInit() {
-
+		timer.stop();
 	}
 
 	@Override
@@ -112,19 +124,27 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void autonomousInit() {
-		SmartDashboard.putBoolean("AutoInitComplete", true);
+		timer.reset();
+		timer.start();
+		compressor0.setClosedLoopControl(true);
 		autonomousCommand = chooser.getSelected();
 
-		/*
-		 * String autoSelected = SmartDashboard.getString("Auto Selector",
-		 * "Default"); switch(autoSelected) { case "My Auto": autonomousCommand
-		 * = new MyAutoCommand(); break; case "Default Auto": default:
-		 * autonomousCommand = new ExampleCommand(); break; }
-		 */
+		 String autoSelected = SmartDashboard.getString("Auto Selector", "Default");
+		 switch(autoSelected) {
+		 	case "My Auto":
+		 		
+		 	break;
+		 	case "Default Auto":
+		 	default:
+		 		//autonomousCommand = new ExampleCommand();
+		 	break;
+		 }
+		 
 
-		// schedule the autonomous command (example)
+		// Schedule the autonomous command
 		if (autonomousCommand != null)
 			autonomousCommand.start();
+		SmartDashboard.putBoolean("AutoInitComplete", true);
 	}
 
 	/**
@@ -133,20 +153,15 @@ public class Robot extends IterativeRobot {
 	@Override
 	public void autonomousPeriodic() {
 		
-		SmartDashboard.putNumber("RunningHeartbeat", Timer.getMatchTime());
+		heartbeat();
 		Scheduler.getInstance().run();
 	}
 
 	@Override
 	public void teleopInit() {
-		// This makes sure that the autonomous stops running when
-		// teleop starts running. If you want the autonomous to
-		// continue until interrupted by another command, remove
-		// this line or comment it out.
-		
-		SmartDashboard.putBoolean("TeleopInitComplete", true);
 		if (autonomousCommand != null)
 			autonomousCommand.cancel();
+		SmartDashboard.putBoolean("TeleopInitComplete", true);
 	}
 
 	/**
@@ -154,6 +169,15 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void teleopPeriodic() {
+		
+		double powerJoy = joystick0.getRawAxis(0);
+		double turnJoy = joystick0.getRawAxis(1);
+		double crabJoy = joystick0.getRawAxis(2);
+		MyDrive.drive(powerJoy, turnJoy, crabJoy);
+		
+		SmartDashboard.putNumber("DrivePower", powerJoy );
+		SmartDashboard.putNumber("DriveTurn", turnJoy );
+		SmartDashboard.putNumber("DriveCrab", crabJoy );
 		
 		heartbeat();
 		Scheduler.getInstance().run();
@@ -173,6 +197,9 @@ public class Robot extends IterativeRobot {
 	 * @link https://stackoverflow.com/a/732043/5779200
 	 */
 	public void heartbeat(){
-		SmartDashboard.putNumber("RunningHeartbeat", System.currentTimeMillis() / 1000L);
+		time = DriverStation.getInstance().getMatchTime();
+		SmartDashboard.putNumber("MatchTime", time);
+		SmartDashboard.putNumber("SystemTime", System.currentTimeMillis() / 1000L);
+		SmartDashboard.putNumber("RunningHeartbeat", timer.get());
 	}
 }
